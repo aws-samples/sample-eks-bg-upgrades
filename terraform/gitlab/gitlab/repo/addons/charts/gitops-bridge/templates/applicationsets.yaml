@@ -1,0 +1,123 @@
+{{- $namespace := .Values.namespace }}
+{{- $useSelector := .Values.useSelector -}}
+{{- $repoURLValues := .Values.repoURLValues -}}
+{{- $repoURLValuesRevision := .Values.repoURLValuesRevision -}}
+{{- $repoURLValuesBasePath := .Values.repoURLValuesBasePath -}}
+{{- $project := .Values.project -}}
+{{- $syncPolicy := .Values.syncPolicy -}}
+{{- $valueFiles := .Values.valueFiles -}}
+{{- $syncPolicyAppSet := .Values.syncPolicyAppSet -}}
+{{- $goTemplate := .Values.goTemplate -}}
+{{- $goTemplateOptions := .Values.goTemplateOptions -}}
+
+{{- range $name, $addon := .Values.addons }}
+{{- if or $useSelector $addon.enabled }}
+{{- with $addon -}}
+{{- $nameNormalize := printf "%s" $name | replace "_" "-" | trunc 63 | trimSuffix "-"  -}}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ $nameNormalize }}
+  namespace: {{ $namespace }}
+  annotations:
+    {{- include "gitops-bridge.annotations" $ | nindent 4 }}
+    {{- if $addon.annotationsAppSet }}{{- toYaml $addon.annotationsAppSet | nindent 4 }}{{- end }}
+  labels:
+    {{- include "gitops-bridge.labels" $ | nindent 4 }}
+    {{- if $addon.labelsAppSet }}{{- toYaml $addon.labelsAppSet | nindent 4 }}{{- end }}
+spec:
+  {{- if $addon.syncPolicyAppSet }}
+  syncPolicy:
+  {{- toYaml $addon.syncPolicyAppSet | nindent 4 }}
+  {{- else }}
+  syncPolicy:
+  {{- toYaml $syncPolicyAppSet | nindent 4 }}
+  {{- end }}
+  goTemplate: {{ default $goTemplate $addon.goTemplate }}
+  {{- if $addon.goTemplateOptions }}
+  goTemplateOptions:
+  {{ toYaml $addon.goTemplateOptions | nindent 2 }}
+  {{ else }}
+  goTemplateOptions:
+  {{ toYaml $goTemplateOptions }}
+  {{- end }}
+  generators:
+    - clusters:
+        selector:
+          matchLabels:
+            argocd.argoproj.io/secret-type: cluster
+        {{- if and $addon.selector $useSelector }}
+          {{- toYaml $addon.selector | nindent 10 }}
+        {{- end }}
+  template:
+    metadata:
+      name: addon-{{ $nameNormalize }}-{{`{{.nameNormalized}}`}}
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: {{ $repoURLValuesBasePath }}{{ $nameNormalize }}/values.yaml
+        {{- include "gitops-bridge.annotations" $ | nindent 8 }}
+        {{- if $addon.annotationsApp }}{{- toYaml $addon.annotationsApp | nindent 8 }}{{- end }}
+      labels:
+        {{- include "gitops-bridge.labels" $ | nindent 8 }}
+        {{- if $addon.labelsApp }}{{- toYaml $addon.labelsApp | nindent 8 }}{{- end }}
+        component: '{{ $nameNormalize }}'
+        environment: '{{`{{.metadata.labels.environment}}`}}'
+        cluster: '{{`{{.name}}`}}'
+    spec:
+      project: {{ $project }}
+      sources:
+      - repoURL: {{ $repoURLValues }}
+        targetRevision: {{ $repoURLValuesRevision }}
+        ref: values
+      - repoURL: '{{ $addon.repoUrl }}'
+        targetRevision: '{{ $addon.targetRevision }}'
+        {{- if $addon.chart }}
+        chart: '{{ $addon.chart }}'
+        {{- end }}
+        {{- if $addon.path }}
+        path: '{{ $addon.path }}'
+        {{- end }}
+        helm:
+          releaseName: '{{ $addon.releaseName }}'
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - '$values/{{ $repoURLValuesBasePath }}{{ $nameNormalize }}/values.yaml'
+          {{- with $addon.values }}
+          valuesObject:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- if $addon.resources }}
+      - repoURL: {{ $repoURLValues }}
+        targetRevision: {{ $repoURLValuesRevision }}
+        {{- if $addon.resources.path }}
+        path: '{{ $repoURLValuesBasePath }}{{ $addon.resources.path }}'
+        {{- end }}
+        {{- if $addon.resources.chart }}
+        chart: '{{ $addon.resources.chart }}'
+        {{- end }}
+        {{- if $addon.resources.helm }}
+        helm:
+          releaseName: '{{ $addon.releaseName }}-resources'
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - '$values/{{ $repoURLValuesBasePath }}{{ $nameNormalize }}/resources/values.yaml'
+          {{- toYaml $addon.resources.helm | nindent 10 }}
+        {{- end }}
+      {{- end }}
+      destination:
+        namespace: '{{ $addon.namespace }}'
+        name: '{{`{{.name}}`}}'
+      {{- if $addon.syncPolicy }}
+      syncPolicy:
+        {{- toYaml $addon.syncPolicy | nindent 8 }}
+      {{ else }}
+      syncPolicy:
+        {{- toYaml $syncPolicy | nindent 8 }}
+      {{- end }}
+      {{- with $addon.ignoreDifferences }}
+      ignoreDifferences:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

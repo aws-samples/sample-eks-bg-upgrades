@@ -1,0 +1,9 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "dependencies": {
+    "@slack/web-api": "^7.9.2",
+    "dotenv": "^16.5.0",
+    "zx": "^8.5.4"
+  }
+}

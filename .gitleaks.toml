@@ -1,0 +1,8 @@
+[allowlist]
+description = "Ignore demo passwords in GitLab setup script"
+paths = [
+  '''scripts/1-setup-gitlab\.mjs'''
+]
+regexes = [
+  '''eks12345'''
+]

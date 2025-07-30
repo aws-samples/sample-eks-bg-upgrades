@@ -1,0 +1,26 @@
+# Default values for blue-green-demo
+# This is a YAML-formatted file.
+
+# Target group ARN - this will be overridden by ArgoCD
+target_group_arn: "placeholder-target-group-arn"
+
+# Namespace for the application
+namespace: your-app-namespace
+
+# Deployment configuration
+deployment:
+  replicas: 2
+  # Single unified image that supports both blue and green modes
+  image: public.ecr.aws/v2f5y6u4/eba:latest
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Global values that can be overridden by ArgoCD
+global:
+  clusterRole: "blue"  # Default to blue, will be overridden by ArgoCD metadata

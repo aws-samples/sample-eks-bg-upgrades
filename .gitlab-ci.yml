@@ -1,0 +1,93 @@
+# GitLab CI/CD Pipeline for EKS Blue/Green Deployment
+# Uses shell executor (no Docker image needed)
+
+variables:
+  CI: "true"
+
+before_script:
+  - yarn install
+  - export PATH="$PWD/node_modules/.bin:$PATH"
+  - ./scripts/setup-ci.mjs
+
+stages:
+  - setup-initial-infra
+  - setup-new-cluster
+  - promote-rollback-cluster
+  - cleanup-old-cluster
+  - cleanup-everything
+
+create-base-infra:
+  stage: setup-initial-infra
+  script:
+    - cd scripts && ./2-create-base-infra.mjs
+  when: manual
+
+create-blue-cluster:
+  stage: setup-initial-infra
+  script:
+    - cd scripts && ./3-create-blue-cluster.mjs
+  when: manual
+  needs:
+    - create-base-infra
+
+setup-next-version-branch:
+  stage: setup-new-cluster
+  script:
+    - cd scripts && ./4-setup-next-version-branch.mjs
+  when: manual
+  needs:
+    - create-blue-cluster
+
+create-green-cluster:
+  stage: setup-new-cluster
+  script:
+    - cd scripts && ./5-create-green-cluster.mjs
+  when: manual
+  needs:
+    - setup-next-version-branch
+
+enable-internal-test:
+  stage: setup-new-cluster
+  script:
+    - cd scripts && ./6-enable-internal-test.mjs
+  when: manual
+  needs:
+    - create-green-cluster
+
+promote-green-cluster:
+  stage: promote-rollback-cluster
+  script:
+    - cd scripts && ./7-promote-green-cluster.mjs
+  when: manual
+  needs:
+    - enable-internal-test
+
+rollback-blue-cluster:
+  stage: promote-rollback-cluster
+  script:
+    - cd scripts && ./8-rollback-blue-cluster.mjs
+  when: manual
+  needs:
+    - promote-green-cluster
+
+merge-next-version-branch:
+  stage: cleanup-old-cluster
+  script:
+    - cd scripts && ./9-merge-next-version-branch.mjs
+  when: manual
+  needs:
+    - promote-green-cluster
+
+delete-green-cluster:
+  stage: cleanup-old-cluster
+  script:
+    - cd scripts && ./10-delete-green-cluster.mjs
+  when: manual
+  needs:
+    - merge-next-version-branch
+
+cleanup-everything:
+  stage: cleanup-everything
+  script:
+    - cd scripts && ./cleanup-everything.mjs
+  when: manual

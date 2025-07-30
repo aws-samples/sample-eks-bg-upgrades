@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workload
+  namespace: argocd
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: false
+  generators:
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchLabels:
+                  environment: 'control-plane'
+          - git:
+              repoURL: '{{metadata.annotations.workload_repo_url}}'
+              revision: '{{metadata.annotations.workload_repo_revision}}'
+              directories:
+                - path: '{{metadata.annotations.workload_repo_basepath}}*'
+  template:
+    metadata:
+      name: 'workload-{{path.basename}}'
+      labels:
+        environment: '{{metadata.labels.environment}}'
+    spec:
+      project: default
+      source:
+        repoURL: '{{metadata.annotations.workload_repo_url}}'
+        path: '{{path}}'
+        targetRevision: '{{metadata.annotations.workload_repo_revision}}'
+        helm:
+          parameters:
+            # Use the target group ARN based on the cluster type
+            - name: target_group_arn
+              value: '{{metadata.annotations.target_group_arn}}'
+            # Set the namespace for the application
+            - name: namespace
+              value: 'blue-green-demo'
+            # Pass the cluster role for blue/green image selection
+            - name: global.clusterRole
+              value: '{{metadata.annotations.cluster_role}}'
+      destination:
+        name: '{{name}}'
+      syncPolicy:
+        automated:
+          allowEmpty: true
+          selfHeal: true
+        retry:
+          backoff:
+            duration: 1m
+        syncOptions:
+          - CreateNamespace=true
