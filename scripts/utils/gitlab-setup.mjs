@@ -292,10 +292,8 @@ export async function initializeGitRepository(publicIp, token, baseDir) {
  * @param {string} pemFile - Path to the PEM file
  */
 export async function createAccessInfoFile(publicIp, rootPassword, outputFile, pemFile) {
-  // Only create access info file when CI=true (for CI/CD automation and troubleshooting)
-  if (process.env.CI === 'true') {
-    await logger.info("Creating/updating GitLab access information file for CI/CD automation...");
-    const accessInfo = `# GitLab Access Information
+  await logger.info("Creating/updating GitLab access information file...");
+  const accessInfo = `# GitLab Access Information
     # Generated on ${new Date().toISOString()}
 
     GitLab URL: http://${publicIp}
@@ -324,11 +322,8 @@ export async function createAccessInfoFile(publicIp, rootPassword, outputFile, p
     sudo -i bash -c "cd /home/ubuntu/gitlab && /usr/bin/docker compose down"
     `;
 
-    fs.writeFileSync(outputFile, accessInfo);
-    await logger.info(`✅ GitLab access information saved to: ${shortDir(outputFile)}`);
-  } else {
-    await logger.info("Manual mode (CI=false) - access info not saved to file");
-  }
+  fs.writeFileSync(outputFile, accessInfo);
+  await logger.info(`✅ GitLab access information saved to: ${shortDir(outputFile)}`);
 }
 
 /**
