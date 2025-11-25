@@ -16,18 +16,18 @@ const BASE_DIR = path.resolve(__dirname, "../..");
  */
 export async function validateExistingGitLab(publicIp) {
   await logger.debug(`Checking GitLab health with multiple attempts...`);
-  
+
   // 3 attempts with 10 second delays - simple and effective
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const healthCheck = await ec2.execute(publicIp, `curl -s -o /dev/null -w "%{http_code}" http://localhost`, { ignoreError: true });
-      
+
       // Accept common GitLab response codes
-      if (healthCheck && ['200', '302', '307'].includes(healthCheck.trim())) {
+      if (healthCheck && ["200", "302", "307"].includes(healthCheck.trim())) {
         await logger.info(`✅ GitLab is healthy (attempt ${attempt})`);
         return true;
       }
-      
+
       if (attempt < 3) {
         await logger.debug(`GitLab not ready, waiting 10s... (attempt ${attempt}/3)`);
         await sleep(10000);
@@ -36,7 +36,7 @@ export async function validateExistingGitLab(publicIp) {
       if (attempt < 3) await sleep(10000);
     }
   }
-  
+
   return false;
 }
 
@@ -118,14 +118,14 @@ export async function setupGitLabInfrastructure(publicIp, pemFile, terraformDir)
  */
 export async function createPersonalAccessToken(publicIp, rootPassword) {
   await logger.debug("Creating a personal access token...");
-  
+
   // Get CSRF token from the login page
   const csrfTokenCmd = `
         curl -s -c cookies.txt "http://${publicIp}/users/sign_in" > sign_in.html
         grep -o 'name="authenticity_token" value="[^"]*"' sign_in.html | sed 's/.*value="\\(.*\\)".*/\\1/'
         rm sign_in.html
     `;
-  
+
   const csrfToken = await ec2.execute(publicIp, csrfTokenCmd, { ignoreError: true });
   if (!csrfToken) {
     await logger.debug("Could not get CSRF token. Will skip repository push.");
@@ -191,7 +191,7 @@ export async function createPersonalAccessToken(publicIp, rootPassword) {
  */
 export async function initializeGitRepository(publicIp, token, baseDir) {
   const projectName = "gitops";
-  
+
   // Create a project via the API
   const createProjectCmd = `
     curl -s -X POST "http://${publicIp}/api/v4/projects" \\
@@ -294,36 +294,42 @@ export async function initializeGitRepository(publicIp, token, baseDir) {
 export async function createAccessInfoFile(publicIp, rootPassword, outputFile, pemFile) {
   await logger.info("Creating/updating GitLab access information file...");
   const accessInfo = `# GitLab Access Information
-    # Generated on ${new Date().toISOString()}
+# Generated on ${new Date().toISOString()}
 
-    GitLab URL: http://${publicIp}
-    SSH Clone URL Format: ssh://git@${publicIp}:2222/username/project.git
+GitLab URL: http://${publicIp}
+SSH Clone URL Format: ssh://git@${publicIp}:2222/username/project.git
 
-    # Access Credentials
-    Username: root
-    Password: ${rootPassword}
+# Access Credentials
+Username: root
+Password: ${rootPassword}
 
-    # Note: The initial password is valid for 24 hours after installation
+# Note: The initial password is valid for 24 hours after installation
 
-    # SSH Access
-    ssh -i ${pemFile} ubuntu@${publicIp}
+# SSH Access
+ssh -i ${pemFile} ubuntu@${publicIp}
 
-    # Docker Commands
-    # Check GitLab container status:
-    sudo -i /usr/bin/docker ps
+# Docker Commands
+# Check GitLab container status:
+sudo -i /usr/bin/docker ps
 
-    # View GitLab logs:
-    sudo -i /usr/bin/docker logs -f gitlab
+# View GitLab logs:
+sudo -i /usr/bin/docker logs -f gitlab
 
-    # Restart GitLab:
-    sudo -i /usr/bin/docker restart gitlab
+# Restart GitLab:
+sudo -i /usr/bin/docker restart gitlab
 
-    # Stop GitLab:
-    sudo -i bash -c "cd /home/ubuntu/gitlab && /usr/bin/docker compose down"
-    `;
+# Stop GitLab:
+sudo -i bash -c "cd /home/ubuntu/gitlab && /usr/bin/docker compose down"`;
 
   fs.writeFileSync(outputFile, accessInfo);
   await logger.info(`✅ GitLab access information saved to: ${shortDir(outputFile)}`);
+}
+
+export async function createEnvFile(publicIp, rootPassword, token, envFile) {
+  const info = `GITLAB_HOST=http://${publicIp}
+GITLAB_PASSWORD=${rootPassword}
+GITLAB_API_TOKEN=${token}`;
+  fs.writeFileSync(envFile, info);
 }
 
 /**
@@ -334,7 +340,7 @@ export async function createAccessInfoFile(publicIp, rootPassword, outputFile, p
  */
 export async function setupCICDIntegration(publicIp, token, rootPassword) {
   // NEW: CI/CD Integration
-  if (process.env.CI === 'true') {
+  if (process.env.CI === "true") {
     // Change back to the scripts directory before calling setupCICD
     // This fixes the working directory issue that causes the spawn error
     cd(path.dirname(__filename));

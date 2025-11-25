@@ -64,6 +64,7 @@ async function main() {
       GITLAB_HOST: process.env.GITLAB_HOST,
       // Validated ACCOUNT_ID
       ACCOUNT_ID: accountId,
+      EKS_ADMIN_ROLE: process.env.EKS_ADMIN_ROLE,
       // Optional variables
       SLACK_BOT_TOKEN: existingVars.SLACK_BOT_TOKEN || process.env.SLACK_BOT_TOKEN || ''
     };

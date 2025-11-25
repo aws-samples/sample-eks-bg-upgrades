@@ -50,4 +50,5 @@ terraform.rc
 .temp/
 node_modules/
 test.mjs
+.env.gitlab
 .env.local

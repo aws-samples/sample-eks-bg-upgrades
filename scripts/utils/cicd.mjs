@@ -209,9 +209,10 @@ async function setGitLabCIVariables(publicIp, token, rootPassword) {
     GITLAB_PASSWORD: rootPassword, // Use the actual GitLab root password for web login
     GITLAB_API_TOKEN: token,       // Store PAT separately for API calls
     GITLAB_HOST: `http://${publicIp}`,
-    ACCOUNT_ID: process.env.ACCOUNT_ID || '',
-    SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN || '',
-    AWS_REGION: process.env.REGION || 'ap-southeast-1'
+    ACCOUNT_ID: process.env.ACCOUNT_ID || "",
+    EKS_ADMIN_ROLE: process.env.EKS_ADMIN_ROLE || "",
+    SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN || "",
+    AWS_REGION: process.env.REGION || "ap-southeast-1",
   };
   
   for (const [key, value] of Object.entries(variables)) {

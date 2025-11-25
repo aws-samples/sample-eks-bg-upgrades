@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 const BASE_DIR = path.resolve(__dirname, "..");
 const TERRAFORM_DIR = path.join(BASE_DIR, "terraform/gitlab");
 const OUTPUT_FILE = path.join(BASE_DIR, "gitlab-access.txt");
+const ENV_FILE = path.join(BASE_DIR, ".env.gitlab");
 const PEM_FILE = path.join(TERRAFORM_DIR, "gitlab-server.pem");
 
 async function main() {
@@ -97,6 +98,7 @@ async function main() {
     if (!token) {
       await logger.debug("Could not create personal access token. Will skip repository push.");
     } else {
+      await gitlabSetup.createEnvFile(publicIp, rootPassword, token, ENV_FILE);
       await gitlabSetup.initializeGitRepository(publicIp, token, BASE_DIR);
       await gitlabSetup.setupCICDIntegration(publicIp, token, rootPassword);
     }
