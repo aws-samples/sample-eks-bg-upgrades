@@ -4,6 +4,6 @@
   "dependencies": {
     "@slack/web-api": "^7.9.2",
     "dotenv": "^16.5.0",
-    "zx": "^8.5.4"
+    "zx": "^8.8.5"
   }
 }
