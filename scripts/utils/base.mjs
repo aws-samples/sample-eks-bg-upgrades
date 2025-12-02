@@ -1,7 +1,10 @@
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const BASE_DIR = path.resolve(__dirname, "..");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const BASE_DIR = path.resolve(__dirname, "..", "..");
 dotenv.config({ path: path.join(BASE_DIR, ".env") });
 dotenv.config({ path: path.join(BASE_DIR, ".env.local"), override: true });
 const { ACCOUNT_ID, REGION, SLACK_BOT_TOKEN, SLACK_CHANNEL, EKS_ADMIN_ROLE } = process.env;

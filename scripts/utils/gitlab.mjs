@@ -205,19 +205,23 @@ class GitLab {
 
       const gitlabHost = creds.baseUrl.split('/root')[0];
       
+      // Build the URL as a complete string to avoid zx escaping issues
+      const updateUrl = `${gitlabHost}/api/v4/projects/${projectId}/variables/${key}`;
+      
       // Try to update existing variable first
-      const updateResult = await $`curl -s -X PUT "${gitlabHost}/api/v4/projects/${projectId}/variables/${key}" \
-        -H "PRIVATE-TOKEN: ${token}" \
-        -F "value=${value}"`;
+      const updateResult = await $`curl -s -X PUT ${updateUrl} \
+        -H ${'PRIVATE-TOKEN: ' + token} \
+        -F ${'value=' + value}`;
       
       try {
         const response = JSON.parse(updateResult.stdout);
         if (response.message && (response.message.includes("404") || response.message.includes("Variable Not Found"))) {
           // Variable doesn't exist, create it
-          await $`curl -s -X POST "${gitlabHost}/api/v4/projects/${projectId}/variables" \
-            -H "PRIVATE-TOKEN: ${token}" \
-            -F "key=${key}" \
-            -F "value=${value}"`;
+          const createUrl = `${gitlabHost}/api/v4/projects/${projectId}/variables`;
+          await $`curl -s -X POST ${createUrl} \
+            -H ${'PRIVATE-TOKEN: ' + token} \
+            -F ${'key=' + key} \
+            -F ${'value=' + value}`;
           await logger.debug(`Created project variable: ${key}`);
         } else if (response.message) {
           // Some other error occurred
@@ -251,8 +255,11 @@ class GitLab {
 
       const gitlabHost = creds.baseUrl.split('/root')[0];
       
-      const result = await $`curl -s "${gitlabHost}/api/v4/projects/${projectId}/variables/${key}" \
-        -H "PRIVATE-TOKEN: ${token}"`;
+      // Build the URL as a complete string to avoid zx escaping issues
+      const getUrl = `${gitlabHost}/api/v4/projects/${projectId}/variables/${key}`;
+      
+      const result = await $`curl -s ${getUrl} \
+        -H ${'PRIVATE-TOKEN: ' + token}`;
       
       const response = JSON.parse(result.stdout);
       if (response.value !== undefined) {
@@ -280,8 +287,11 @@ class GitLab {
 
       const gitlabHost = creds.baseUrl.split('/root')[0];
       
-      await $`curl -s -X DELETE "${gitlabHost}/api/v4/projects/${projectId}/variables/${key}" \
-        -H "PRIVATE-TOKEN: ${token}"`;
+      // Build the URL as a complete string to avoid zx escaping issues
+      const deleteUrl = `${gitlabHost}/api/v4/projects/${projectId}/variables/${key}`;
+      
+      await $`curl -s -X DELETE ${deleteUrl} \
+        -H ${'PRIVATE-TOKEN: ' + token}`;
       
       await logger.debug(`Deleted project variable: ${key}`);
     } catch (error) {
