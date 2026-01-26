@@ -60,6 +60,8 @@ resource "kubernetes_namespace" "argocd" {
   metadata {
     name = local.argocd_namespace
   }
+
+  depends_on = [module.eks]
 }
 
 # // Create the appropriate target group secret based on cluster type
